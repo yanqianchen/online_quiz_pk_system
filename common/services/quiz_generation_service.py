@@ -1,10 +1,13 @@
 # services/quiz_generation_service.py
+import logging
 import requests
 import json
 import uuid
 from ..models import QuizQuestion  # Ensure you import your model (using relative import)
 from .config_service import get_cached_config_by_key
 
+
+logger = logging.getLogger(__name__)
 
 def generate_quiz_questions(topic, difficulty, num_questions):
     """
@@ -53,15 +56,15 @@ def generate_quiz_questions(topic, difficulty, num_questions):
         response = requests.post(api_url, headers=headers, data=json.dumps(payload))
         response.raise_for_status()  # Check for HTTP errors
         response_data = response.json()
-        print("payload:" + json.dumps(payload))
-        print("response_data: ", response_data)
+        logger.log(logging.INFO, msg="payload:" + json.dumps(payload))
+        logger.log(logging.INFO, msg="response_data: " + response_data)
 
         # Parse the JSON data
         content = response_data['choices'][0]['message']['content']
         try:
             quiz_data = json.loads(content)
         except json.JSONDecodeError as e:
-            print(f"JSON parsing error: {content}")
+            logger.error(f"JSON parsing error: {content}")
             return {"error": f"JSON parsing error: {e}"}
 
         # Transform the data to use English keys
@@ -94,11 +97,11 @@ def generate_quiz_questions(topic, difficulty, num_questions):
         return {"generation_id": generation_id}  # Return a dictionary containing the generation_id
 
     except requests.exceptions.RequestException as e:
-        print(f"API request error: {e}")
+        logger.error(f"API request error: {e}")
         return {"error": f"API request error: {e}"}
     except KeyError as e:
-        print(f"JSON structure error: Missing key {e}")
+        logger.error(f"JSON structure error: Missing key {e}")
         return {"error": f"JSON structure error: Missing key {e}"}
     except Exception as e:
-        print(f"An unknown error occurred: {e}")
+        logger.error(f"An unknown error occurred: {e}")
         return {"error": f"An unknown error occurred: {e}"}
